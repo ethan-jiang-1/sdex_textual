@@ -9,7 +9,7 @@ from accelerate import Accelerator
 from diffusers.pipelines.stable_diffusion import StableDiffusionSafetyChecker
 from diffusers import DDPMScheduler, PNDMScheduler, StableDiffusionPipeline # AutoencoderKL, , UNet2DConditionModel
 from transformers import CLIPFeatureExtractor #, CLIPTextModel, CLIPTokenizer
-from torch._C import NoneType
+#from torch._C import NoneType
 import torch.nn.functional as F
 
 def _freeze_params(params):
@@ -44,13 +44,13 @@ def create_dataloader(train_dataset_all, train_batch_size=1):
 
 def training_function(hyperparameters,train_dataset_all, text_encoder, vae, unet, tokenizer, new_placeholder_tokens):
     logger = logging.getLogger(__name__)
+
     noise_scheduler = DDPMScheduler(
         beta_start=0.00085, 
         beta_end=0.012, 
         beta_schedule="scaled_linear", 
         num_train_timesteps=1000, 
-        tensor_format="pt"
-    )
+        tensor_format="pt")
 
     train_batch_size = hyperparameters["train_batch_size"]
     gradient_accumulation_steps = hyperparameters["gradient_accumulation_steps"]
@@ -66,18 +66,15 @@ def training_function(hyperparameters,train_dataset_all, text_encoder, vae, unet
 
     if hyperparameters["scale_lr"]:
         learning_rate = (
-            learning_rate * gradient_accumulation_steps * train_batch_size * accelerator.num_processes
-        )
+            learning_rate * gradient_accumulation_steps * train_batch_size * accelerator.num_processes)
 
     # Initialize the optimizer
     optimizer = torch.optim.AdamW(
         text_encoder.get_input_embeddings().parameters(),  # only optimize the embeddings
-        lr=learning_rate,
-    )
+        lr=learning_rate,)
 
     text_encoder, optimizer, train_dataloader = accelerator.prepare(
-        text_encoder, optimizer, train_dataloader
-    )
+        text_encoder, optimizer, train_dataloader)
 
     # Move vae and unet to device
     vae.to(accelerator.device)
@@ -106,13 +103,6 @@ def training_function(hyperparameters,train_dataset_all, text_encoder, vae, unet
     global_step = 0
 
     new_placeholder_token_ids = get_new_placeholder_token_ids(tokenizer, new_placeholder_tokens)
-    index_all_token = torch.arange(len(tokenizer))
-    index_grads_to_zero = NoneType
-    for ndx, new_placeholder_token_id in enumerate(new_placeholder_token_ids):
-        if ndx == 0:
-            index_grads_to_zero = index_all_token != new_placeholder_token_id
-        else:
-            index_grads_to_zero &= index_all_token != new_placeholder_token_id
 
     for epoch in range(num_train_epochs):
         text_encoder.train()
@@ -149,6 +139,12 @@ def training_function(hyperparameters,train_dataset_all, text_encoder, vae, unet
                     grads = text_encoder.get_input_embeddings().weight.grad
                 
                 # Get the index for tokens that we want to zero the grads for
+                index_all_token = torch.arange(len(tokenizer))
+                for ndx, new_placeholder_token_id in enumerate(new_placeholder_token_ids):
+                    if ndx == 0:
+                        index_grads_to_zero = index_all_token != new_placeholder_token_id
+                    else:
+                        index_grads_to_zero &= index_all_token != new_placeholder_token_id
                 grads.data[index_grads_to_zero, :] = grads.data[index_grads_to_zero, :].fill_(0)
 
                 optimizer.step()
@@ -159,7 +155,8 @@ def training_function(hyperparameters,train_dataset_all, text_encoder, vae, unet
                 progress_bar.update(1)
                 global_step += 1
 
-            logs = {"loss": loss.detach().item()}
+            loss_val = loss.detach().item()
+            logs = {"loss": loss_val}
             progress_bar.set_postfix(**logs)
 
             if global_step >= max_train_steps:

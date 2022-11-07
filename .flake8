@@ -1,0 +1,11 @@
+[flake8]
+ignore = E501, E302, E231, W293, W292, E128, E122, E265, W291, E711, E226, E225, F403, W391, E261, E262, E228 
+exclude = 
+    venv 
+    data
+    .git
+    __pycache__
+    migrations
+    .vscode
+
+max-complexity = 80

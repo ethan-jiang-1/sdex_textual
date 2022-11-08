@@ -6,7 +6,8 @@ def prepare_images(save_path):
         name = save_path.split("_")[-1]
         dir_src = f"/content/drive/MyDrive/shared/sd_concept_data/{name}"
         if not os.path.isdir(dir_src):
-            dir_src = f"/root/texture/sd_concept_data/{name}"
+            cwd = os.getcwd()
+            dir_src = f"{cwd}/sd_concept_data/{name}"
             if not os.path.isdir(dir_src):
                 raise ValueError(f"no folder named {dir_src}")
 
@@ -22,7 +23,7 @@ def prepare_images(save_path):
         return images
 
     if not os.path.exists(save_path):
-        os.mkdir(save_path)
+        os.makedirs(save_path, exist_ok=True)
 
     images = _load_local_images()
     [image.save(f"{save_path}/{i}.jpeg") for i, image in enumerate(images)]

@@ -42,7 +42,7 @@ def create_dataloader(train_dataset_all, train_batch_size=1):
     return torch.utils.data.DataLoader(train_dataset_all, batch_size=train_batch_size, shuffle=True)
 
 
-def training_function(hyperparameters,train_dataset_all, text_encoder, vae, unet, tokenizer, new_placeholder_tokens):
+def training_function(hyperparameters,train_dataset_all, text_encoder, vae, unet, tokenizer, new_placeholder_tokens, dry_run):
     logger = logging.getLogger(__name__)
 
     noise_scheduler = DDPMScheduler(
@@ -165,6 +165,9 @@ def training_function(hyperparameters,train_dataset_all, text_encoder, vae, unet
         accelerator.wait_for_everyone()
 
     # Create the pipeline using using the trained modules and save it.
+    if dry_run:
+        return 
+
     if accelerator.is_main_process:
         pipeline = StableDiffusionPipeline(
             text_encoder=accelerator.unwrap_model(text_encoder),

@@ -7,5 +7,6 @@ exclude =
     __pycache__
     migrations
     .vscode
+    hotgame.py
 
 max-complexity = 80

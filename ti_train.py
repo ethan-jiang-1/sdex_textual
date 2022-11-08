@@ -59,7 +59,7 @@ def training_function(hyperparameters,train_dataset_all, text_encoder, vae, unet
     output_dir = hyperparameters["output_dir"]
 
     accelerator = Accelerator(
-        gradient_accumulation_steps=gradient_accumulation_steps,
+        gradient_accumulation_steps=gradient_accumulation_steps
     )
 
     train_dataloader = create_dataloader(train_dataset_all, train_batch_size)
